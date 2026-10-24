@@ -113,10 +113,18 @@ function Terrain({ width = 40, depth = 40 }: { width?: number; depth?: number })
 }
 
 function RidgePath({ nodes }: { nodes: ReturnType<typeof normalizePrices> }) {
+  const [hovered, setHovered] = useState<number | null>(null)
   const points = useMemo(
     () => nodes.map((n) => new THREE.Vector3(-4, n.y, n.z)),
     [nodes],
   )
+
+  useEffect(() => {
+    document.body.style.cursor = hovered === null ? '' : 'pointer'
+    return () => {
+      document.body.style.cursor = ''
+    }
+  }, [hovered])
 
   return (
     <>
@@ -124,15 +132,32 @@ function RidgePath({ nodes }: { nodes: ReturnType<typeof normalizePrices> }) {
       {nodes.map((n, i) => {
         const prev = nodes[i - 1]
         const up = prev ? n.price >= prev.price : true
+        // Pole runs from the ground (terrain sits around y = -0.3) up to the flag
+        const poleBottom = -0.3 - n.y
+        const poleTop = 0.2
+        const poleHeight = poleTop - poleBottom
+        const dayChange = prev ? ((n.price - prev.price) / prev.price) * 100 : null
         return (
-          <group key={n.ts} position={[-4, n.y, n.z]}>
-            <mesh position={[0, -n.y, 0]}>
-              <cylinderGeometry args={[0.04, 0.04, n.y, 6]} />
+          <group
+            key={n.ts}
+            position={[-4, n.y, n.z]}
+            onPointerOver={(e) => {
+              e.stopPropagation()
+              setHovered(i)
+            }}
+            onPointerOut={() => setHovered((h) => (h === i ? null : h))}
+          >
+            <mesh position={[0, poleBottom + poleHeight / 2, 0]}>
+              <cylinderGeometry args={[0.04, 0.04, poleHeight, 6]} />
               <meshStandardMaterial color={up ? '#4ade80' : '#f87171'} emissive={up ? '#14532d' : '#7f1d1d'} emissiveIntensity={0.3} />
             </mesh>
-            <mesh position={[0, 0.15, 0]}>
+            <mesh position={[0.25, 0.15, 0]}>
               <boxGeometry args={[0.5, 0.08, 0.08]} />
               <meshStandardMaterial color={up ? '#22c55e' : '#ef4444'} />
+            </mesh>
+            {/* Invisible, wider hit area so the thin pole and flag are easy to hover */}
+            <mesh position={[0.15, 0, 0]} visible={false}>
+              <boxGeometry args={[0.9, 0.9, 0.9]} />
             </mesh>
             <Html distanceFactor={12} style={{ pointerEvents: 'none' }}>
               <div
@@ -148,6 +173,22 @@ function RidgePath({ nodes }: { nodes: ReturnType<typeof normalizePrices> }) {
                 ${(n.price / 1000).toFixed(1)}k
               </div>
             </Html>
+            {hovered === i && (
+              <Html style={{ pointerEvents: 'none' }} zIndexRange={[30, 20]}>
+                <div className="flag-tooltip">
+                  <div className="flag-tooltip-date">
+                    {new Date(n.ts).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                  </div>
+                  <div className="flag-tooltip-price">{formatUsd(n.price)}</div>
+                  {dayChange !== null && (
+                    <div className={`flag-tooltip-change ${dayChange >= 0 ? 'up' : 'down'}`}>
+                      {dayChange >= 0 ? '+' : ''}
+                      {dayChange.toFixed(2)}% on the day
+                    </div>
+                  )}
+                </div>
+              </Html>
+            )}
           </group>
         )
       })}
@@ -217,16 +258,21 @@ function Scene({ data, reducedMotion }: { data: MarketData; reducedMotion: boole
     return new THREE.Vector3(-4, peak.y + 0.5, peak.z)
   }, [nodes])
 
-  const { camera } = useThree()
+  const { camera, size } = useThree()
+  // Pull the camera back on narrow screens and aim a little higher, so the ridge
+  // and summit cone sit below the headline price instead of behind it
+  const aspect = size.width / Math.max(size.height, 1)
+  const pullBack = aspect < 0.8 ? 1.9 : aspect < 1.3 ? 1.4 : 1.1
+  const lookAtY = 5.2
   useEffect(() => {
-    camera.position.set(8, 7, 12)
-    camera.lookAt(-2, 3, 0)
-  }, [camera])
+    camera.position.set(8 * pullBack, 7 * pullBack, 12 * pullBack)
+    camera.lookAt(-2, lookAtY, 0)
+  }, [camera, pullBack])
 
   useFrame(() => {
     if (reducedMotion) return
-    camera.position.x = 8 + Math.sin(Date.now() * 0.00015) * 0.4
-    camera.lookAt(-2, 3.5, 0)
+    camera.position.x = 8 * pullBack + Math.sin(Date.now() * 0.00015) * 0.4
+    camera.lookAt(-2, lookAtY, 0)
   })
 
   const sunPos = useMemo(() => new THREE.Vector3(-20, 12, -10), [])

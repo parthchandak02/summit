@@ -22,9 +22,9 @@
 
 <br><br>
 
-<a href="https://summit.parthchandak.info"><img src="docs/assets/readme/hero.jpg" width="100%" alt="A pale blue line zig-zags across a pale sky above a dark hill, with green and red flag poles marking each day's Bitcoin close, the current price of $81,211 top-left and a small sparkline bottom-left"></a>
+<a href="https://summit.parthchandak.info"><img src="docs/assets/readme/hero.jpg" width="100%" alt="A pale blue line zig-zags across a pale sky above a dark hill, with green and red flag poles rising from the ground to each day's Bitcoin close, a hover tooltip on one flag showing its date, price and daily change, the summit cone below the headline price top-left and a small sparkline bottom-left"></a>
 
-<sub>Live capture, 22 October 2026. Real CoinGecko prices, not a demo.</sub>
+<sub>Live capture, 23 October 2026, hovering one flag. Real CoinGecko prices, not a demo.</sub>
 
 </div>
 
@@ -50,8 +50,8 @@ The page polls every 60 seconds. If CoinGecko is unreachable it shows a syntheti
 $95,000 and the stamp bottom-left reads `fallback` instead of `live`. The camera drifts
 slightly; with `prefers-reduced-motion` it holds still.
 
-Rough edges, left as shipped: the flag poles hang below their flags instead of reaching the
-ground, and at some viewport sizes the summit cone sits behind the headline price.
+Hover a flag for a tooltip with its full date, closing price and change on the day. The camera
+pulls back on narrow screens so the ridge and summit cone stay clear of the headline price.
 
 ## Run it
 
